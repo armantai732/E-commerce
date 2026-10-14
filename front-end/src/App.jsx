@@ -17,6 +17,13 @@ import ProfileDashboard from "./pages/ProfilePage";
 import MyOrdersPage from "./pages/MyOrdersPage";
 import OrderCompletePage from "./pages/OrderCompletePage";
 import WishlistPage from "./pages/WishlistPage";
+import AdminDashboard from "./pages/AdminDashboard";
+import AdminLayout from "./components/admin/AdminLayout";
+import AdminProducts from "./pages/admin/AdminProducts";
+import AdminCategories from "./pages/admin/AdminCategories";
+import AdminOrders from "./pages/admin/AdminOrders";
+import AdminCustomers from "./pages/admin/AdminCustomers";
+import AdminSettings from "./pages/admin/AdminSettings";
 
 // Login-required routes
 const ProtectedRoute = ({ children }) => {
@@ -43,7 +50,7 @@ function App() {
     };
   }, []);
 
-  const hideLayout = location.pathname === "/auth";
+  const hideLayout = location.pathname === "/auth" || location.pathname === "/dashboard" || location.pathname === "/dashboard/products" || location.pathname === "/dashboard/categories" || location.pathname === "/dashboard/orders" || location.pathname === "/dashboard/customers" || location.pathname === "/dashboard/settings";
 
   return (
     <>
@@ -89,6 +96,16 @@ function App() {
 
         <Route path="*" element={<Navigate to="/" replace />} />
         <Route path="/wishlist" element={<WishlistPage />} />
+
+        {/* Admin Portal Nested Routes */}
+        <Route path="/dashboard" element={<AdminLayout />}>
+          <Route index element={<AdminDashboard />} />
+          <Route path="products" element={<AdminProducts />} />
+          <Route path="categories" element={<AdminCategories />} />
+          <Route path="orders" element={<AdminOrders />} />
+          <Route path="customers" element={<AdminCustomers />} />
+          <Route path="settings" element={<AdminSettings />} />
+        </Route>
       </Routes>
 
       {!hideLayout && <Footer />}

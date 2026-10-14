@@ -157,11 +157,14 @@ const ShopPage = () => {
         setWishlist((previous) =>
           alreadyExists
             ? previous.filter(
-                (wishlistItem) => getProductId(wishlistItem) !== productId
-              )
+              (wishlistItem) => getProductId(wishlistItem) !== productId
+            )
             : [...previous, item]
         );
       }
+
+      window.dispatchEvent(new Event("wishlistUpdated"));
+
     } catch (error) {
       console.error("Wishlist update failed:", error.message);
       alert(error.message || "Wishlist update nahi hui.");
@@ -252,7 +255,7 @@ const ShopPage = () => {
           const nameMatches =
             passedCategoryName &&
             category.name?.toLowerCase() ===
-              passedCategoryName.toLowerCase();
+            passedCategoryName.toLowerCase();
 
           return idMatches || nameMatches;
         });
@@ -370,7 +373,7 @@ const ShopPage = () => {
     const isSubCategoryMatch =
       selectedSubCategory === "All" ||
       productCategoryName.toLowerCase() ===
-        selectedSubCategory.toLowerCase();
+      selectedSubCategory.toLowerCase();
 
     const activePriceRange = priceRanges.find(
       (range) => range.id === selectedPriceRange
@@ -450,11 +453,10 @@ const ShopPage = () => {
                     <li key={cat._id || cat.name}>
                       <button
                         onClick={() => handleCategoryChange(cat.name)}
-                        className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-between ${
-                          isActive
+                        className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-between ${isActive
                             ? "bg-[#FAF3EA] text-[#966F33] border border-[#EEDFCD] shadow-sm"
                             : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                        }`}
+                          }`}
                       >
                         <span>{cat.name}</span>
                         {isActive && (
@@ -481,11 +483,10 @@ const ShopPage = () => {
                       <button
                         key={subCat}
                         onClick={() => setSelectedSubCategory(subCat)}
-                        className={`text-left px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
-                          selectedSubCategory === subCat
+                        className={`text-left px-3 py-2 rounded-xl text-xs font-semibold transition-all ${selectedSubCategory === subCat
                             ? "bg-stone-900 text-amber-200 font-bold shadow-sm"
                             : "bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                        }`}
+                          }`}
                       >
                         {subCat}
                       </button>
@@ -594,8 +595,8 @@ const ShopPage = () => {
                   const discount =
                     originalPrice > price && originalPrice > 0
                       ? Math.round(
-                          ((originalPrice - price) / originalPrice) * 100
-                        )
+                        ((originalPrice - price) / originalPrice) * 100
+                      )
                       : 0;
 
                   const productId = getProductId(item);
@@ -660,15 +661,13 @@ const ShopPage = () => {
                                 ? "Remove from wishlist"
                                 : "Add to wishlist"
                             }
-                            className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center border transition-all duration-200 ${
-                              isWishlisted
+                            className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center border transition-all duration-200 ${isWishlisted
                                 ? "bg-red-50 border-red-200 text-red-500"
                                 : "bg-white border-gray-200 text-gray-500 hover:text-red-500 hover:border-red-200 hover:bg-red-50"
-                            } ${
-                              isUpdating || wishlistLoading
+                              } ${isUpdating || wishlistLoading
                                 ? "opacity-50 cursor-not-allowed"
                                 : ""
-                            }`}
+                              }`}
                           >
                             <Heart
                               size={18}

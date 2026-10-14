@@ -35,8 +35,13 @@ const AuthPage = () => {
 
             if (res.status) {
                 alert(res.message);
-                navigate("/");
                 localStorage.setItem("token", res.token);
+                const role = res.role
+                if (role === "admin") {
+                    navigate("/dashboard");
+                } else {
+                    navigate("/");
+                }
                 setForm({
                     name: "",
                     email: "",
@@ -78,7 +83,7 @@ const AuthPage = () => {
 
                 {/* LEFT COLUMN: Luxury Dark Banner */}
                 <div className="col-span-5 bg-stone-900 relative flex flex-col justify-between p-6 sm:p-10 text-white overflow-hidden">
-                    
+
                     <img
                         src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=1000&auto=format&fit=crop"
                         alt="Shop Background"
@@ -157,22 +162,20 @@ const AuthPage = () => {
                         <button
                             type="button"
                             onClick={() => setIsLogin(true)}
-                            className={`flex-1 text-center pb-3 text-xs sm:text-sm font-black transition-all tracking-wider uppercase ${
-                                isLogin
-                                    ? 'text-stone-900 border-b-2 border-[#966F33]'
-                                    : 'text-stone-400 hover:text-stone-600'
-                            }`}
+                            className={`flex-1 text-center pb-3 text-xs sm:text-sm font-black transition-all tracking-wider uppercase ${isLogin
+                                ? 'text-stone-900 border-b-2 border-[#966F33]'
+                                : 'text-stone-400 hover:text-stone-600'
+                                }`}
                         >
                             Login
                         </button>
                         <button
                             type="button"
                             onClick={() => setIsLogin(false)}
-                            className={`flex-1 text-center pb-3 text-xs sm:text-sm font-black transition-all tracking-wider uppercase ${
-                                !isLogin
-                                    ? 'text-stone-900 border-b-2 border-[#966F33]'
-                                    : 'text-stone-400 hover:text-stone-600'
-                            }`}
+                            className={`flex-1 text-center pb-3 text-xs sm:text-sm font-black transition-all tracking-wider uppercase ${!isLogin
+                                ? 'text-stone-900 border-b-2 border-[#966F33]'
+                                : 'text-stone-400 hover:text-stone-600'
+                                }`}
                         >
                             Register
                         </button>

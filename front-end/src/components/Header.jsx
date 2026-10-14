@@ -1,12 +1,15 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ShoppingBag, User, LogOut, Store, Menu, X, Heart } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { getWishlist } from '../api/api';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
+  const [wishlistCount, setWishlistCount] = useState(0);
+
 
   const toggleMenu = () => {
     setIsMenuOpen((prev) => !prev);
@@ -30,6 +33,34 @@ const Header = () => {
     navigate("/auth");
   };
 
+
+  useEffect(() => {
+    const fetchWishlistCount = async () => {
+      if (!localStorage.getItem("token")) {
+        setWishlistCount(0);
+        return;
+      }
+
+      try {
+        const response = await getWishlist();
+        const products = response?.products || [];
+
+        setWishlistCount(products.length);
+      } catch (error) {
+        console.log("Wishlist error:", error.message);
+      }
+    };
+
+    fetchWishlistCount();
+
+    // Wishlist add/remove hone par count update hoga
+    window.addEventListener("wishlistUpdated", fetchWishlistCount);
+
+    return () => {
+      window.removeEventListener("wishlistUpdated", fetchWishlistCount);
+    };
+  }, [location.pathname]);
+
   return (
     <header className="w-full bg-white border-b border-gray-100 shadow-sm sticky top-0 z-50">
       <div className="py-3 px-4 sm:px-6 md:px-12 flex items-center justify-between">
@@ -50,9 +81,8 @@ const Header = () => {
             <Link
               key={link.name}
               to={link.path}
-              className={`transition-colors hover:text-black ${
-                location.pathname === link.path ? 'text-black font-bold' : ''
-              }`}
+              className={`transition - colors hover: text - black ${location.pathname === link.path ? 'text-black font-bold' : ''
+                } `}
             >
               {link.name}
             </Link>
@@ -61,7 +91,7 @@ const Header = () => {
 
         {/* Right: Action Icons & Mobile Menu Button */}
         <div className="flex items-center gap-2 sm:gap-4 text-gray-700">
-          
+
           {/* Auth Button (Login / Logout) */}
           {token ? (
             <button
@@ -85,13 +115,19 @@ const Header = () => {
           )}
 
           {/* Wishlist Icon Button */}
-          <Link to="/wishlist" onClick={closeMenu}>
+          <Link to={token ? "/wishlist" : "/auth"} onClick={closeMenu}>
             <button
               aria-label="Wishlist"
               title="Wishlist"
               className="p-1.5 hover:text-black hover:bg-gray-100 rounded-full transition-colors relative"
             >
               <Heart size={20} />
+
+              {wishlistCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-amber-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                  {wishlistCount > 99 ? "99+" : wishlistCount}
+                </span>
+              )}
             </button>
           </Link>
 
@@ -128,11 +164,10 @@ const Header = () => {
               key={link.name}
               to={link.path}
               onClick={closeMenu}
-              className={`block text-sm font-bold py-2 border-b border-gray-50 last:border-none transition-colors ${
-                location.pathname === link.path
+              className={`block text - sm font - bold py - 2 border - b border - gray - 50 last: border - none transition - colors ${location.pathname === link.path
                   ? 'text-black'
                   : 'text-gray-600 hover:text-black'
-              }`}
+                } `}
             >
               {link.name}
             </Link>

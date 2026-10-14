@@ -34,6 +34,29 @@ export const loginData = async (form) => {
     }
 };
 
+
+export const addCategory = async (form) => {
+    try {
+        const formData = new FormData();
+
+        formData.append("name", form.name);
+        formData.append("image", form.image);
+
+        const res = await fetch(`${BASE_URL}/category/create`, {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+            body: formData,
+        });
+
+        return await res.json();
+    } catch (error) {
+        console.error("Add category failed:", error.message);
+        throw error;
+    }
+};
+
 // GET CATEGORY
 export const getCategorydata = async () => {
     try {
@@ -43,6 +66,58 @@ export const getCategorydata = async () => {
         console.log(error.message);
     }
 };
+
+export const getParentCategorydata = async () => {
+    try {
+        const res = await fetch(`${BASE_URL}/category/get/parents`);
+        return await res.json();
+    } catch (error) {
+        console.log(error.message);
+    }
+};
+
+export const deleteCategorydata = async (id) => {
+    try {
+        const res = await fetch(`${BASE_URL}/category/delete/${id}`, {
+            method: "delete",
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+            body: JSON.stringify(id)
+        })
+
+        return await res.json();
+    } catch (error) {
+        console.log(error.message);
+    }
+}
+
+
+export const updateCategorydata = async (id, form) => {
+    try {
+        const formData = new FormData();
+
+        formData.append("name", form.name);
+
+        if (form.image) {
+            formData.append("image", form.image);
+        }
+
+        const res = await fetch(`${BASE_URL}/category/update/${id}`, {
+            method: "PUT",
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+            body: formData,
+        });
+
+        return await res.json();
+    } catch (error) {
+        console.log("Update category failed:", error.message);
+        throw error;
+    }
+};
+
 
 // GET PRODUCTS
 export const getProductdata = async () => {
@@ -176,7 +251,7 @@ export const getMyOrders = async () => {
 
     return data;
 };
- 
+
 // GET WISHLIST
 export const getWishlist = async () => {
     try {
@@ -251,36 +326,36 @@ export const removeFromWishlist = async (productId) => {
 
 // Add Product to Cart
 export const addToCart = async ({
-  productId,
-  quantity = 1,
-  size = "",
-  color = "",
+    productId,
+    quantity = 1,
+    size = "",
+    color = "",
 }) => {
-  const token = localStorage.getItem("token");
+    const token = localStorage.getItem("token");
 
-  if (!token) {
-    throw new Error("Please login first to add products to your cart.");
-  }
+    if (!token) {
+        throw new Error("Please login first to add products to your cart.");
+    }
 
-  const response = await fetch(`${BASE_URL}/cart/add`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({
-      productId,
-      quantity,
-      size,
-      color,
-    }),
-  });
+    const response = await fetch(`${BASE_URL}/cart/add`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+            productId,
+            quantity,
+            size,
+            color,
+        }),
+    });
 
-  const data = await response.json();
+    const data = await response.json();
 
-  if (!response.ok) {
-    throw new Error(data.message || "Failed to add product to cart.");
-  }
+    if (!response.ok) {
+        throw new Error(data.message || "Failed to add product to cart.");
+    }
 
-  return data;
+    return data;
 };

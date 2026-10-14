@@ -60,7 +60,8 @@ export const createProduct = async (req, res) => {
 export const getAllProduct = async (req, res) => {
     try {
         const products = await Product.find()
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 })
+            .populate("category", "name")
 
         res.status(200).json({
             status: true,
