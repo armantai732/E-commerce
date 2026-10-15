@@ -1,4 +1,4 @@
-import mongoose, { mongo } from "mongoose";
+import mongoose from "mongoose";
 
 const productSchema = new mongoose.Schema({
     name: {
@@ -16,12 +16,6 @@ const productSchema = new mongoose.Schema({
         required: true,
         ref: "Category"
     },
-    sku: {
-        type: String,
-        unique: String,
-        required: true,
-        trim: true
-    },
     images: {
         type: [String],
         required: true,
@@ -34,7 +28,6 @@ const productSchema = new mongoose.Schema({
                 ),
             message: "Image URLs must be valid strings"
         }
-
     },
     price: {
         type: Number,
@@ -44,6 +37,11 @@ const productSchema = new mongoose.Schema({
     originalPrice: {
         type: Number,
         required: true,
+        min: 0
+    },
+    costPrice: {
+        type: Number,
+        default: 0,
         min: 0
     },
     discount: {
@@ -75,6 +73,29 @@ const productSchema = new mongoose.Schema({
         type: [String],
         default: []
     },
+    sizeStock: [
+        {
+            size: {
+                type: String,
+                required: true,
+                trim: true
+            },
+            colourStock: [
+                {
+                    colour: {
+                        type: String,
+                        required: true,
+                        trim: true
+                    },
+                    quantity: {
+                        type: Number,
+                        default: 0,
+                        min: 0
+                    }
+                }
+            ]
+        }
+    ],
     colors: [
         {
             name: {
@@ -111,29 +132,41 @@ const productSchema = new mongoose.Schema({
             user: {
                 type: mongoose.Schema.Types.ObjectId,
                 ref: "user",
-                required: true
+                required: true,
+            },
+            name: {
+                type: String,
+                required: true,
+                trim: true,
+            },
+            email: {
+                type: String,
+                required: true,
+                trim: true,
+                lowercase: true,
             },
             rating: {
                 type: Number,
                 required: true,
                 min: 1,
-                max: 5
+                max: 5,
             },
             comment: {
                 type: String,
                 required: true,
-                trim: true
+                trim: true,
+                maxlength: 1000,
             },
             createdAt: {
                 type: Date,
                 default: Date.now,
-            }
-        }
+            },
+        },
     ],
     isActive: {
         type: Boolean,
         default: true
     },
-}, { timestamps: true })
+}, { timestamps: true });
 
-export const Product = mongoose.model("Product", productSchema)
+export const Product = mongoose.model("Product", productSchema);

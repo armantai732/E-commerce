@@ -1,33 +1,34 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Trash2, X, ShoppingBag } from 'lucide-react';
-import { Link } from 'react-router-dom';
+
+import React, { useState, useEffect, useCallback } from "react";
+import { Trash2, X, ShoppingBag } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const API_BASE_URL =
-    import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+    import.meta.env.VITE_API_URL || "http://localhost:8080/api";
 
 const CartPage = () => {
     const [cartItems, setCartItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [updatingItem, setUpdatingItem] = useState(null);
-    const [error, setError] = useState('');
+    const [error, setError] = useState("");
 
-    // Fetch cart data from MongoDB
+    // Fetch cart
     const fetchCart = useCallback(async (showLoading = true) => {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem("token");
 
         if (!token) {
             setCartItems([]);
-            setError('Please login to view your cart.');
+            setError("Please login to view your cart.");
             setLoading(false);
             return;
         }
 
         try {
             if (showLoading) setLoading(true);
-            setError('');
+            setError("");
 
             const response = await fetch(`${API_BASE_URL}/cart`, {
-                method: 'GET',
+                method: "GET",
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },
@@ -36,13 +37,13 @@ const CartPage = () => {
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.message || 'Unable to load cart.');
+                throw new Error(data.message || "Unable to load cart.");
             }
 
             setCartItems(Array.isArray(data.items) ? data.items : []);
         } catch (err) {
-            console.error('Fetch cart error:', err);
-            setError(err.message || 'Something went wrong.');
+            console.error("Fetch cart error:", err);
+            setError(err.message || "Something went wrong.");
         } finally {
             setLoading(false);
         }
@@ -52,21 +53,17 @@ const CartPage = () => {
         fetchCart();
     }, [fetchCart]);
 
-    // Update product quantity in MongoDB
+    // Update quantity: no fixed maximum of 5
     const handleQuantityChange = async (item, delta) => {
-        const newQuantity = item.quantity + delta;
+        const currentQuantity = Number(item.quantity) || 1;
+        const newQuantity = currentQuantity + delta;
 
         if (newQuantity < 1) return;
 
-        if (item.stock != null && newQuantity > item.stock) {
-            alert(`Only ${item.stock} items are available in stock.`);
-            return;
-        }
-
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem("token");
 
         if (!token) {
-            alert('Please login first.');
+            alert("Please login first.");
             return;
         }
 
@@ -76,9 +73,9 @@ const CartPage = () => {
             const response = await fetch(
                 `${API_BASE_URL}/cart/${item.id}`,
                 {
-                    method: 'PATCH',
+                    method: "PATCH",
                     headers: {
-                        'Content-Type': 'application/json',
+                        "Content-Type": "application/json",
                         Authorization: `Bearer ${token}`,
                     },
                     body: JSON.stringify({
@@ -90,24 +87,26 @@ const CartPage = () => {
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.message || 'Unable to update quantity.');
+                throw new Error(
+                    data.message || "Unable to update quantity."
+                );
             }
 
             await fetchCart(false);
         } catch (err) {
-            console.error('Quantity update error:', err);
-            alert(err.message || 'Unable to update quantity.');
+            console.error("Quantity update error:", err);
+            alert(err.message || "Unable to update quantity.");
         } finally {
             setUpdatingItem(null);
         }
     };
 
-    // Remove product from MongoDB cart
+    // Remove item
     const handleRemoveItem = async (itemId) => {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem("token");
 
         if (!token) {
-            alert('Please login first.');
+            alert("Please login first.");
             return;
         }
 
@@ -117,7 +116,7 @@ const CartPage = () => {
             const response = await fetch(
                 `${API_BASE_URL}/cart/${itemId}`,
                 {
-                    method: 'DELETE',
+                    method: "DELETE",
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },
@@ -127,21 +126,24 @@ const CartPage = () => {
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.message || 'Unable to remove product.');
+                throw new Error(
+                    data.message || "Unable to remove product."
+                );
             }
 
             await fetchCart(false);
         } catch (err) {
-            console.error('Remove cart item error:', err);
-            alert(err.message || 'Unable to remove product.');
+            console.error("Remove cart item error:", err);
+            alert(err.message || "Unable to remove product.");
         } finally {
             setUpdatingItem(null);
         }
     };
 
-    // Price calculations from database products
+    // Price calculations
     const subtotal = cartItems.reduce(
-        (acc, item) => acc + Number(item.price || 0) * item.quantity,
+        (acc, item) =>
+            acc + Number(item.price || 0) * Number(item.quantity || 0),
         0
     );
 
@@ -149,9 +151,9 @@ const CartPage = () => {
     const total = subtotal + shipping;
 
     const formatPrice = (price) =>
-        Number(price || 0).toLocaleString('en-IN');
+        Number(price || 0).toLocaleString("en-IN");
 
-    // Loading state
+    // Loading
     if (loading) {
         return (
             <div className="w-full bg-[#FAF9F6] min-h-screen py-20 px-4">
@@ -168,7 +170,7 @@ const CartPage = () => {
         );
     }
 
-    // Error state
+    // Error
     if (error) {
         return (
             <div className="w-full bg-[#FAF9F6] min-h-screen py-10 px-4">
@@ -183,7 +185,7 @@ const CartPage = () => {
                             {error}
                         </p>
 
-                        {!localStorage.getItem('token') ? (
+                        {!localStorage.getItem("token") ? (
                             <Link
                                 to="/login"
                                 className="inline-block bg-[#081225] text-white px-6 py-3 rounded-xl text-sm font-bold"
@@ -217,36 +219,35 @@ const CartPage = () => {
                     <ShoppingBag size={20} className="text-gray-400" />
                 </div>
 
-                {/* Cart Items List */}
+                {/* Cart Items */}
                 {cartItems.length > 0 ? (
                     <div className="space-y-4">
-
                         {cartItems.map((item) => {
                             const variant = [
-                                item.size ? `Size: ${item.size}` : '',
-                                item.color ? `Color: ${item.color}` : '',
+                                item.size ? `Size: ${item.size}` : "",
+                                item.color ? `Color: ${item.color}` : "",
                             ]
                                 .filter(Boolean)
-                                .join(' | ');
+                                .join(" | ");
 
                             return (
                                 <div
                                     key={item.id}
                                     className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex items-center justify-between gap-3 relative transition-all"
                                 >
-                                    {/* Product Image */}
+                                    {/* Image */}
                                     <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-gray-100 overflow-hidden shrink-0 flex items-center justify-center p-2">
                                         <img
                                             src={
                                                 item.image ||
-                                                'https://placehold.co/300x300?text=Product'
+                                                "https://placehold.co/300x300?text=Product"
                                             }
-                                            alt={item.name || 'Product'}
+                                            alt={item.name || "Product"}
                                             className="w-full h-full object-contain mix-blend-multiply"
                                         />
                                     </div>
 
-                                    {/* Product Info */}
+                                    {/* Product Information */}
                                     <div className="flex-1 min-w-0 space-y-1">
                                         <div className="flex items-start justify-between gap-2">
                                             <div className="min-w-0">
@@ -261,12 +262,13 @@ const CartPage = () => {
                                                 )}
                                             </div>
 
-                                            {/* Remove X */}
                                             <button
                                                 onClick={() =>
                                                     handleRemoveItem(item.id)
                                                 }
-                                                disabled={updatingItem === item.id}
+                                                disabled={
+                                                    updatingItem === item.id
+                                                }
                                                 className="text-gray-300 hover:text-gray-600 transition-colors disabled:opacity-40"
                                                 aria-label="Remove product"
                                             >
@@ -281,8 +283,7 @@ const CartPage = () => {
                                             </span>
 
                                             <div className="flex items-center gap-2">
-                                                {/* Quantity Selector */}
-                                                <div className="flex items-center gap-3 border border-gray-200 rounded-lg px-2 py-0.5 bg-white">
+                                                <div className="flex items-center gap-3 border border-gray-200 rounded-lg px-2 py-1 bg-white">
                                                     <button
                                                         onClick={() =>
                                                             handleQuantityChange(
@@ -297,10 +298,10 @@ const CartPage = () => {
                                                         className="text-gray-500 font-bold hover:text-black text-sm disabled:opacity-30"
                                                         aria-label="Decrease quantity"
                                                     >
-                                                        -
+                                                        −
                                                     </button>
 
-                                                    <span className="text-xs font-bold text-gray-900 min-w-[12px] text-center">
+                                                    <span className="text-xs font-bold text-gray-900 min-w-[24px] text-center tabular-nums">
                                                         {item.quantity}
                                                     </span>
 
@@ -321,12 +322,13 @@ const CartPage = () => {
                                                     </button>
                                                 </div>
 
-                                                {/* Delete Icon */}
                                                 <button
                                                     onClick={() =>
                                                         handleRemoveItem(item.id)
                                                     }
-                                                    disabled={updatingItem === item.id}
+                                                    disabled={
+                                                        updatingItem === item.id
+                                                    }
                                                     className="text-gray-400 hover:text-red-500 p-1 transition-colors disabled:opacity-40"
                                                     aria-label="Delete product"
                                                 >
@@ -334,6 +336,14 @@ const CartPage = () => {
                                                 </button>
                                             </div>
                                         </div>
+
+                                        <p className="text-xs text-gray-500">
+                                            Item total: ₹{" "}
+                                            {formatPrice(
+                                                Number(item.price || 0) *
+                                                Number(item.quantity || 0)
+                                            )}
+                                        </p>
 
                                         {updatingItem === item.id && (
                                             <p className="text-xs text-gray-400">
@@ -371,7 +381,7 @@ const CartPage = () => {
                             </div>
                         </div>
 
-                        {/* Checkout Button */}
+                        {/* Checkout */}
                         <Link
                             to="/check-out"
                             className="block w-full bg-[#081225] hover:bg-black text-white text-center font-bold py-4 rounded-xl text-sm transition-all shadow-md active:scale-[0.99] mt-4"

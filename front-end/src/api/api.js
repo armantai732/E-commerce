@@ -38,9 +38,14 @@ export const loginData = async (form) => {
 export const addCategory = async (form) => {
     try {
         const formData = new FormData();
-
         formData.append("name", form.name);
-        formData.append("image", form.image);
+        if (form.image) {
+            formData.append("image", form.image);
+        }
+        // Agar parentCategory selected hai toh bhejo, warna null/empty chhodo
+        if (form.parentCategory) {
+            formData.append("parentCategory", form.parentCategory);
+        }
 
         const res = await fetch(`${BASE_URL}/category/create`, {
             method: "POST",
@@ -96,11 +101,12 @@ export const deleteCategorydata = async (id) => {
 export const updateCategorydata = async (id, form) => {
     try {
         const formData = new FormData();
-
         formData.append("name", form.name);
-
         if (form.image) {
             formData.append("image", form.image);
+        }
+        if (form.parentCategory !== undefined) {
+            formData.append("parentCategory", form.parentCategory || "");
         }
 
         const res = await fetch(`${BASE_URL}/category/update/${id}`, {
@@ -113,7 +119,7 @@ export const updateCategorydata = async (id, form) => {
 
         return await res.json();
     } catch (error) {
-        console.log("Update category failed:", error.message);
+        console.error("Update category failed:", error.message);
         throw error;
     }
 };
@@ -358,4 +364,170 @@ export const addToCart = async ({
     }
 
     return data;
+};
+
+
+export const addProduct = async (formData) => {
+    try {
+        const response = await fetch(`${BASE_URL}/product/create`, {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`
+            },
+            body: formData
+        });
+        return await response.json();
+    } catch (error) {
+        console.error("API addProduct Error:", error);
+        throw error.response?.data || { status: false, message: error.message };
+    }
+}
+
+// UPDATE PRODUCT
+export const updateProduct = async (id, formData) => {
+    const response = await fetch(`${BASE_URL}/product/${id}`, {
+        method: "PUT",
+        headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: formData,
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+        throw new Error(result.message || "Product update failed");
+    }
+
+    return { status: response.status, data: result };
+};
+
+// DELETE PRODUCT
+export const deleteProduct = async (id) => {
+    const response = await fetch(`${BASE_URL}/product/${id}`, {
+        method: "DELETE",
+        headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+        throw new Error(result.message || "Product delete failed");
+    }
+
+    return result;
+};
+
+
+// ADD PRODUCT REVIEW
+export const addProductReview = async (productId, reviewData) => {
+    const token = localStorage.getItem("token");
+
+    const response = await fetch(
+        `${BASE_URL}/product/${productId}/reviews`,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(reviewData),
+        }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.message || "Failed to submit review");
+    }
+
+    return data;
+};
+
+// GET PRODUCT REVIEWS
+export const getProductReviews = async (productId) => {
+    const response = await fetch(
+        `${BASE_URL}/product/${productId}/reviews`,
+        {
+            method: "GET",
+        }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.message || "Failed to fetch reviews");
+    }
+
+    return data;
+};
+
+export const getAdminCustomers = async () => {
+    const token = localStorage.getItem("token");
+
+    const response = await fetch(`${BASE_URL}/admin/customers`, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+    }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.message || "Failed to fetch customers");
+    }
+
+    return data;
+};
+
+
+export const getAdminOrders = async () => {
+    const token = localStorage.getItem("token");
+
+    const response = await fetch(`${BASE_URL}/orders/admin-orders`,
+        {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+        }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.message || "Failed to fetch orders");
+    }
+
+    return data;
+};
+
+
+export const cancelMyOrder = async (orderId, reason) => {
+  const token = localStorage.getItem("token");
+
+  const response = await fetch(`${BASE_URL}/orders/${orderId}/cancel`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ reason }),
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Unable to cancel order");
+  }
+
+  return data;
 };

@@ -10,6 +10,7 @@ import {
     getSingleProduct,
     updateProduct
 } from "../controler/productController.js";
+import upload from "../middleware/upload.js";
 
 const router = express.Router();
 
@@ -21,17 +22,18 @@ router.get("/:id", getSingleProduct);
 
 // CREATE PRODUCT (ADMIN ONLY)
 router.post(
-    "/",
+    "/create",
     verifyToken,
     isAdmin,
+    upload.array("image", 5),
     createProduct
 );
-
 // UPDATE PRODUCT (ADMIN ONLY)
 router.put(
     "/:id",
     verifyToken,
     isAdmin,
+    upload.array("image", 5),
     updateProduct
 );
 
@@ -55,5 +57,8 @@ router.get(
     "/:id/reviews",
     getProductReviews
 );
+
+
+
 
 export default router;

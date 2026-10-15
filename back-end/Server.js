@@ -10,6 +10,7 @@ import routers from './router/addressRoutes.js';
 import paymentRouter from './router/paymentRouter.js';
 import orderRouter from './router/orderRoutes.js';
 import WishRouter from './router/wishlistRoutes.js';
+import adminRoute from './router/adminRoutes.js';
 dotenv.config();
 
 
@@ -26,6 +27,7 @@ app.use("/api/address", routers);
 app.use("/api/payment", paymentRouter)
 app.use("/api/orders", orderRouter)
 app.use("/api/wishlist", WishRouter);
+app.use("/api/admin", adminRoute)
 
 
 await DBCONNECT();

@@ -14,14 +14,6 @@ const AdminHeader = ({ setIsMobileOpen }) => {
           <Menu size={20} />
         </button>
 
-        <div className="relative hidden sm:block w-64 lg:w-80">
-          <input
-            type="text"
-            placeholder="Search orders, products, customers..."
-            className="w-full text-xs font-semibold pl-9 pr-4 py-2.5 rounded-2xl border border-stone-200 bg-[#FAF9F6] focus:outline-none focus:border-stone-900 transition-colors"
-          />
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
-        </div>
       </div>
 
       {/* Right: Notifications & Admin Profile */}

@@ -1,4 +1,7 @@
+import mongoose from "mongoose";
+import { User } from "../model/authModel.js";
 import { Product } from "../model/productModel.js";
+import uploadImageToCloudinary from "../utils/uploadImageToCloudinary.js";
 
 // CREATE PRODUCT
 export const createProduct = async (req, res) => {
@@ -7,61 +10,92 @@ export const createProduct = async (req, res) => {
             name,
             brand,
             price,
-            originalPrice,
+            old,
+            costPrice,
             category,
             description,
-            specifications = [],
-            sizes = [],
-            colors = [],
-            stock,
-            sku,
-            images = []
+            sizeStock,
         } = req.body;
 
-        const discount = Number(originalPrice) > 0
+        // 1. Upload images to Cloudinary
+        const images = [];
+
+        for (const file of req.files || []) {
+            const imageUrl = await uploadImageToCloudinary(file.buffer);
+            images.push(imageUrl);
+        }
+
+        // 2. Get sizes, colours and total stock
+        const stockData = sizeStock ? JSON.parse(sizeStock) : [];
+
+        const sizes = [];
+        const colours = new Set();
+        let stock = 0;
+
+        stockData.forEach((item) => {
+            if (!sizes.includes(item.size)) {
+                sizes.push(item.size);
+            }
+
+            item.colourStock?.forEach((colour) => {
+                colours.add(colour.colour);
+                stock += Number(colour.quantity) || 0;
+            });
+        });
+
+        // 3. Calculate price and discount
+        const priceValue = Number(price);
+        const originalPrice = Number(old) || priceValue;
+
+        const discount = originalPrice > priceValue
             ? Math.round(
-                ((Number(originalPrice) - Number(price)) /
-                    Number(originalPrice)) * 100
+                ((originalPrice - priceValue) / originalPrice) * 100
             )
             : 0;
 
+        // 4. Save product
         const product = await Product.create({
             name,
             brand,
-            price,
-            originalPrice,
-            discount,
             category,
+            images,
+            price: priceValue,
+            originalPrice,
+            costPrice: Number(costPrice) || 0,
+            discount,
             description,
-            specifications,
             sizes,
-            colors,
+            colors: [...colours].map((name) => ({
+                name,
+                code: name,
+            })),
             stock,
-            sku,
-            images
+            sizeStock: stockData,
         });
 
+        // 5. Send response
         res.status(201).json({
             status: true,
             message: "Product added successfully",
-            data: product
+            data: product,
         });
 
     } catch (error) {
+        console.error("Create Product Error:", error.message);
+
         res.status(500).json({
             status: false,
-            message: error.message
+            message: error.message,
         });
     }
 };
-
 
 // GET ALL PRODUCTS
 export const getAllProduct = async (req, res) => {
     try {
         const products = await Product.find()
             .sort({ createdAt: -1 })
-            .populate("category", "name")
+            .populate("category", "name");
 
         res.status(200).json({
             status: true,
@@ -75,7 +109,6 @@ export const getAllProduct = async (req, res) => {
         });
     }
 };
-
 
 // GET SINGLE PRODUCT
 export const getSingleProduct = async (req, res) => {
@@ -102,7 +135,6 @@ export const getSingleProduct = async (req, res) => {
     }
 };
 
-
 // UPDATE PRODUCT
 export const updateProduct = async (req, res) => {
     try {
@@ -119,52 +151,76 @@ export const updateProduct = async (req, res) => {
             name,
             brand,
             price,
-            originalPrice,
+            old,
+            costPrice,
             category,
             description,
-            specifications,
-            sizes,
-            colors,
-            stock,
-            sku,
-            images
+            sizeStock
         } = req.body;
 
+        // Update basic details
         if (name !== undefined) product.name = name;
         if (brand !== undefined) product.brand = brand;
-        if (price !== undefined) product.price = price;
-        if (originalPrice !== undefined) {
-            product.originalPrice = originalPrice;
-        }
         if (category !== undefined) product.category = category;
-        if (description !== undefined) {
-            product.description = description;
-        }
-        if (stock !== undefined) product.stock = stock;
-        if (sku !== undefined) product.sku = sku;
+        if (description !== undefined) product.description = description;
 
-        if (specifications !== undefined) {
-            product.specifications = specifications;
+        // Update prices
+        if (price !== undefined) product.price = Number(price);
+
+        if (old !== undefined) {
+            product.originalPrice = Number(old) || Number(price ?? product.price);
         }
 
-        if (sizes !== undefined) {
+        if (costPrice !== undefined) {
+            product.costPrice = Number(costPrice) || 0;
+        }
+
+        // Update size and colour stock
+        if (sizeStock !== undefined) {
+            const stockData = JSON.parse(sizeStock);
+            const sizes = [];
+            const colours = new Set();
+            let totalStock = 0;
+
+            stockData.forEach((item) => {
+                if (item.size && !sizes.includes(item.size)) {
+                    sizes.push(item.size);
+                }
+
+                (item.colourStock || []).forEach((item) => {
+                    colours.add(item.colour);
+                    totalStock += Number(item.quantity) || 0;
+                });
+            });
+
+            product.sizeStock = stockData;
             product.sizes = sizes;
+            product.colors = [...colours].map((colour) => ({
+                name: colour,
+                code: colour
+            }));
+            product.stock = totalStock;
         }
 
-        if (colors !== undefined) {
-            product.colors = colors;
-        }
+        // Upload new images only if selected
+        if (req.files?.length > 0) {
+            const images = [];
 
-        // Images: accept any number of image URLs
-        if (images !== undefined) {
+            for (const file of req.files) {
+                const url = await uploadImageToCloudinary(file.buffer);
+                images.push(url);
+            }
+
             product.images = images;
         }
 
-        product.discount = Number(product.originalPrice) > 0
+        // Recalculate discount
+        const sellingPrice = Number(product.price);
+        const originalPrice = Number(product.originalPrice);
+
+        product.discount = originalPrice > sellingPrice && originalPrice > 0
             ? Math.round(
-                ((Number(product.originalPrice) -
-                    Number(product.price)) /
-                    Number(product.originalPrice)) * 100
+                ((originalPrice - sellingPrice) / originalPrice) * 100
             )
             : 0;
 
@@ -177,13 +233,14 @@ export const updateProduct = async (req, res) => {
         });
 
     } catch (error) {
+        console.error("Update Product Error:", error.message);
+
         res.status(500).json({
             status: false,
             message: error.message
         });
     }
 };
-
 
 // DELETE PRODUCT
 export const deleteProduct = async (req, res) => {
@@ -211,117 +268,155 @@ export const deleteProduct = async (req, res) => {
 };
 
 
-// ADD PRODUCT REVIEW
+// POST /api/product/:id/reviews
 export const addProductReview = async (req, res) => {
-    try {
-        const { rating, comment } = req.body;
+  try {
+    const { id } = req.params;
+    const { rating, description, comment } = req.body;
 
-        const userId = req.user?._id || req.user?.id;
-
-        if (!userId) {
-            return res.status(401).json({
-                status: false,
-                message: "Please login first"
-            });
-        }
-
-        if (
-            !Number.isInteger(Number(rating)) ||
-            Number(rating) < 1 ||
-            Number(rating) > 5
-        ) {
-            return res.status(400).json({
-                status: false,
-                message: "Rating must be between 1 and 5"
-            });
-        }
-
-        if (!comment || !comment.trim()) {
-            return res.status(400).json({
-                status: false,
-                message: "Please enter your review"
-            });
-        }
-
-        const product = await Product.findById(req.params.id);
-
-        if (!product) {
-            return res.status(404).json({
-                status: false,
-                message: "Product not found"
-            });
-        }
-
-        const alreadyReviewed = product.reviews.some(
-            (review) => review.user.toString() === userId.toString()
-        );
-
-        if (alreadyReviewed) {
-            return res.status(400).json({
-                status: false,
-                message: "You have already reviewed this product"
-            });
-        }
-
-        product.reviews.push({
-            user: userId,
-            rating: Number(rating),
-            comment: comment.trim()
-        });
-
-        product.totalReviews = product.reviews.length;
-
-        product.rating = Number(
-            (
-                product.reviews.reduce(
-                    (total, review) => total + review.rating,
-                    0
-                ) / product.totalReviews
-            ).toFixed(1)
-        );
-
-        await product.save();
-
-        res.status(201).json({
-            status: true,
-            message: "Review added successfully",
-            data: product
-        });
-
-    } catch (error) {
-        res.status(500).json({
-            status: false,
-            message: error.message
-        });
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid product ID",
+      });
     }
+
+    const numericRating = Number(rating);
+    const reviewText = (description ?? comment ?? "").trim();
+
+    if (
+      !Number.isInteger(numericRating) ||
+      numericRating < 1 ||
+      numericRating > 5
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Rating must be between 1 and 5",
+      });
+    }
+
+    if (!reviewText || reviewText.length > 1000) {
+      return res.status(400).json({
+        success: false,
+        message: "Review is required (maximum 1000 characters)",
+      });
+    }
+
+    const product = await Product.findById(id);
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    const userId =
+      req.user?.userId || req.user?.id || req.user?._id;
+
+    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(401).json({
+        success: false,
+        message: "Please login again",
+      });
+    }
+
+    const user = await User.findById(userId).select("name email");
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // One review per user per product
+    const alreadyReviewed = product.reviews.some(
+      (review) => String(review.user) === String(user._id)
+    );
+
+    if (alreadyReviewed) {
+      return res.status(409).json({
+        success: false,
+        message: "You have already reviewed this product",
+      });
+    }
+
+    product.reviews.push({
+      user: user._id,
+      name: user.name,
+      email: user.email,
+      rating: numericRating,
+      comment: reviewText,
+    });
+
+    product.totalReviews = product.reviews.length;
+
+    product.rating =
+      product.reviews.reduce(
+        (total, review) => total + review.rating,
+        0
+      ) / product.totalReviews;
+
+    await product.save();
+
+    return res.status(201).json({
+      success: true,
+      message: "Review submitted successfully",
+      review: product.reviews[product.reviews.length - 1],
+      averageRating: Number(product.rating.toFixed(1)),
+      totalReviews: product.totalReviews,
+    });
+  } catch (error) {
+    console.error("Add review error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to submit review",
+    });
+  }
 };
 
-
-// GET PRODUCT REVIEWS
+// GET /api/product/:id/reviews
 export const getProductReviews = async (req, res) => {
-    try {
-        const product = await Product.findById(req.params.id)
-            .select("reviews rating totalReviews")
-            .populate("reviews.user", "name");
+  try {
+    const { id } = req.params;
 
-        if (!product) {
-            return res.status(404).json({
-                status: false,
-                message: "Product not found"
-            });
-        }
-
-        res.status(200).json({
-            status: true,
-            rating: product.rating,
-            totalReviews: product.totalReviews,
-            data: product.reviews
-        });
-
-    } catch (error) {
-        res.status(500).json({
-            status: false,
-            message: error.message
-        });
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid product ID",
+      });
     }
+
+    const product = await Product.findById(id).select(
+      "reviews rating totalReviews"
+    );
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    const reviews = [...product.reviews].sort(
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+    );
+
+    return res.status(200).json({
+      success: true,
+      productId: id,
+      averageRating: Number(product.rating || 0).toFixed(1),
+      totalReviews: product.totalReviews || 0,
+      reviews,
+    });
+  } catch (error) {
+    console.error("Get reviews error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch reviews",
+    });
+  }
 };
