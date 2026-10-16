@@ -17,7 +17,9 @@ dotenv.config();
 const app = express();
 
 app.use(express.json());
-app.use(cors());
+app.use(cors(
+    "https://e-commerce-rose-phi-68.vercel.app/"
+));
 
 app.use("/api/auth", authRouter);
 app.use("/api/category", categoryRouter);
